@@ -30,6 +30,21 @@ describe ActsAsTenant::Configuration do
       expect(ActsAsTenant.should_require_tenant?).to eq(false)
     end
 
+    it "evaluates lambda with context" do
+      account = accounts(:foo)
+      test_context = nil
+
+      ActsAsTenant.configure do |config|
+        config.require_tenant = ->(context) {
+          test_context = context
+          context.klass.name == "Project"
+        }
+      end
+
+      expect { account.projects.create!(name: "foobar") }.to raise_error(ActsAsTenant::Errors::NoTenantSet)
+      expect(test_context.klass.name).to eq("Project")
+    end
+
     it "evaluates boolean" do
       ActsAsTenant.configure do |config|
         config.require_tenant = true
